@@ -1,14 +1,11 @@
 # Fornello Order Tool
 
-A shared HTTP tool for simulated pizza pickup orders. **One person deploys it
-once; everyone else connects to the same API.** This repository contains only
-the tool, its OpenAPI specification and deployment script.
+HTTP API for simulated pizza pickup orders.
 
-## 1. Deploy once
+## Deployment
 
-You need Git, Azure CLI, PowerShell 5.1+ and an Azure subscription with permission
-to create resources and role assignments (for example, Owner). Your organization
-must allow the resources listed below. No local Python or Docker is required.
+Prerequisites: Git, Azure CLI, PowerShell 5.1+ and Azure permissions to create
+resources and role assignments (for example, Owner).
 
 ```powershell
 git clone https://github.com/MartinWehrsig/fornello-order-tool.git
@@ -17,35 +14,25 @@ az login
 .\deploy.ps1 -SubscriptionId "<SUBSCRIPTION-ID>" -ResourceGroup "rg-pizza-team-swc"
 ```
 
-The script deploys to **Sweden Central**, prints the endpoint URLs and saves:
+Region: **Sweden Central**. Outputs:
 
 | Local file | Purpose |
 |---|---|
 | `.local/connection.json` | Endpoint URLs and secret API key. Never publish or commit this file. |
 | `.local/openapi.json` | OpenAPI specification with the deployed server URL. |
 
-The first deployment can take several minutes. Running the same command again
-updates the tool and preserves its existing API key.
+Redeployment preserves the existing API key.
 
-## 2. Share the connection with your team
+## Connection
 
-Give each team member:
+- `GET {baseUrl}/openapi.json`: public specification with the deployed server URL.
+- `POST {baseUrl}/orders`: submit an order; requires the `x-functions-key` header.
+- API key: `.local/connection.json`; distribute through a secure channel.
+- [Menu](menu.txt): item codes, sizes and prices.
 
-- The **OpenAPI URL** printed by the script, or `.local/openapi.json`.
-- The **API key**, shared separately through a secure channel.
-- The authentication header name: **`x-functions-key`**.
-- The [menu](menu.txt), if they need item codes, sizes and prices.
+## Test
 
-Team members import the specification into an OpenAPI-compatible client and
-configure the API key as a header. Alternatively, call `POST {baseUrl}/orders`
-directly. `GET {baseUrl}/openapi.json` is public; submitting an order requires
-the key. The deployed specification contains the correct base URL.
-
-**No separate deployment or tool programming is needed for other team members.**
-
-## 3. Test the tool
-
-From the deployment directory, submit a large Margherita with extra mushrooms:
+Large Margherita with extra mushrooms:
 
 ```powershell
 $connection = Get-Content .\.local\connection.json -Raw | ConvertFrom-Json
@@ -61,10 +48,9 @@ Invoke-RestMethod -Method Post -Uri "$($connection.baseUrl)/orders" `
     -Headers $headers -ContentType "application/json" -Body $body
 ```
 
-Expected: `status: accepted_demo`, a `DEMO-...` order ID, `total_eur: "12.40"`
-and an English confirmation explicitly stating that no real order was placed.
+Expected: `status: accepted_demo`, a `DEMO-...` order ID and `total_eur: "12.40"`.
 
-Optional: `python verify_live_api.py` checks authentication, pricing and invalid
+`python verify_live_api.py` checks authentication, pricing and invalid
 requests against the deployment. Requires Python 3.10+, no extra packages.
 
 ## Scope and costs
@@ -82,5 +68,3 @@ requests against the deployment. Requires Python 3.10+, no extra packages.
   even when idle**. No Application Insights is created.
 - When finished, delete the dedicated resource group in the Azure portal after
   checking that it contains no resources needed by other applications.
-
-This is a demo tool, not a production ordering system.
