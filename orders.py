@@ -61,7 +61,7 @@ SIZE_LABELS = {
     "small": "Small 26 cm",
     "large": "Large 32 cm",
     "family": "Family 45 x 33 cm",
-    "standard": "Einheitsgroesse",
+    "standard": "Standard size",
 }
 
 
@@ -197,16 +197,16 @@ def submit_order(payload: object) -> dict:
         "demo": True,
         "order_id": f"DEMO-{uuid4().hex[:12].upper()}",
         "status": "accepted_demo",
-        "message": f"Demo-Bestellung von {summary} ist eingegangen und wird simuliert vorbereitet. "
-                   "Sie steht in der Demo bald zur Abholung bereit. Es wurde keine echte Bestellung aufgegeben.",
+        "message": f"Demo order for {summary} has been received. Preparation and pickup are simulated. "
+                   "No real order has been placed.",
         "fulfillment": "pickup",
         "items": priced_items,
         "total_eur": f"{total // 100}.{total % 100:02d}",
         "currency": "EUR",
         "promotions_applied": False,
-        "notice": "Hackathon-Simulation ohne Speicherung, Zahlung oder echte Restaurantanbindung. "
-                  "Keine Rabatte, Lieferung, Sonderboeden, Ersetzungen oder Half-and-half. "
-                  "Die Kueche verarbeitet alle 14 Allergene; Spuren koennen nicht ausgeschlossen werden.",
+        "notice": "Team demo with no storage, payment or real restaurant connection. "
+                  "No discounts, delivery, special dough, substitutions or half-and-half pizzas. "
+                  "The kitchen handles all 14 allergens; traces cannot be excluded.",
     }
 
 
@@ -215,8 +215,8 @@ def openapi_document() -> dict:
         "openapi": "3.0.3",
         "info": {
             "title": "Pizzeria Fornello Demo Orders",
-            "version": "1.0.0",
-            "description": "Shared hackathon API. Simulated pickup orders only; no real preparation, storage or payments.",
+            "version": "1.0.1",
+            "description": "Shared team tool API. Simulated pickup orders only; no real preparation, storage or payments.",
         },
         "servers": [{"url": "https://YOUR-FUNCTION-APP.azurewebsites.net/api"}],
         "paths": {

@@ -24,8 +24,28 @@ class OrderTests(unittest.TestCase):
         self.assertEqual(result["total_eur"], "33.30")
         self.assertEqual(result["items"][0]["unit_price_eur"], "15.40")
         self.assertTrue(result["demo"])
-        self.assertIn("keine echte Bestellung", result["message"])
+        self.assertIn("No real order has been placed.", result["message"])
         self.assertIn("2 x Margherita", result["message"])
+
+    def test_english_confirmation_and_standard_size(self):
+        result = submit_order({"confirmed": True, "items": [
+            item(extras=["mushrooms"]), item("S01", "standard"),
+        ]})
+        self.assertEqual(
+            result["message"],
+            "Demo order for 1 x Margherita (Large 32 cm) + mushrooms; "
+            "1 x Garlic Bread (Standard size) has been received. "
+            "Preparation and pickup are simulated. No real order has been placed.",
+        )
+        self.assertEqual(
+            result["notice"],
+            "Team demo with no storage, payment or real restaurant connection. "
+            "No discounts, delivery, special dough, substitutions or half-and-half pizzas. "
+            "The kitchen handles all 14 allergens; traces cannot be excluded.",
+        )
+        self.assertEqual(result["status"], "accepted_demo")
+        self.assertEqual(result["total_eur"], "17.30")
+        self.assertTrue(result["order_id"].startswith("DEMO-"))
 
     def test_every_menu_code_and_pizza_size_is_supported(self):
         for code, (_, prices) in PIZZAS.items():

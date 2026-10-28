@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Pizzeria Fornello Demo Orders",
-    "version": "1.0.0",
-    "description": "Shared hackathon API. Simulated pickup orders only; no real preparation, storage or payments."
+    "version": "1.0.1",
+    "description": "Shared team tool API. Simulated pickup orders only; no real preparation, storage or payments."
   },
   "servers": [
     {

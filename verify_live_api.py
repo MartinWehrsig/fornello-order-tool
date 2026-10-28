@@ -47,6 +47,8 @@ def main() -> None:
     assert result["demo"] is True and result["status"] == "accepted_demo"
     assert result["total_eur"] == "12.40", f"Incorrect menu price: {result['total_eur']}"
     assert result["order_id"].startswith("DEMO-")
+    assert "No real order has been placed." in result["message"], "Expected an English demo confirmation"
+    assert result["notice"].startswith("Team demo"), "Expected an English demo notice"
     print(f"PASS: confirmed demo order {result['order_id']} accepted for EUR 12.40")
 
     for changed in (

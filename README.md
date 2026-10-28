@@ -1,85 +1,86 @@
 # Fornello Order Tool
 
-Einmal vom Organisator bereitstellen, von allen Hackathon-Teilnehmern nutzen:
-eine fertige OpenAPI fuer simulierte Pizza-Abholbestellungen. Die Teilnehmer
-muessen das Tool **nicht programmieren**.
+A shared HTTP tool for simulated pizza pickup orders. **One person deploys it
+once; everyone else connects to the same API.** This repository contains only
+the tool, its OpenAPI specification and deployment script.
 
-## Voraussetzungen
+## 1. Deploy once
 
-- Azure CLI und PowerShell 5.1 oder neuer; fuer `git clone` ausserdem Git.
-- Azure-Subscription mit Berechtigungen zum Erstellen der Ressourcen und
-  Rollenzuweisungen, z. B. Owner. Organisationsrichtlinien muessen die unten
-  genannten Ressourcen erlauben.
-- Kein Docker, lokales Python oder Foundry-Projekt fuer das API-Deployment.
-
-## Bereitstellen
+You need Git, Azure CLI, PowerShell 5.1+ and an Azure subscription with permission
+to create resources and role assignments (for example, Owner). Your organization
+must allow the resources listed below. No local Python or Docker is required.
 
 ```powershell
 git clone https://github.com/MartinWehrsig/fornello-order-tool.git
 cd fornello-order-tool
 az login
-.\deploy.ps1 -SubscriptionId "<SUBSCRIPTION-ID>" -ResourceGroup "rg-pizza-hackathon-swc"
+.\deploy.ps1 -SubscriptionId "<SUBSCRIPTION-ID>" -ResourceGroup "rg-pizza-team-swc"
 ```
 
-Das Skript erstellt alles in **Sweden Central** und gibt die OpenAPI-URL aus.
-Das erste Deployment kann wegen der Netzwerkressourcen mehrere Minuten dauern.
-Erneutes Ausfuehren aktualisiert die API und behaelt den bestehenden API-Key.
+The script deploys to **Sweden Central**, prints the endpoint URLs and saves:
 
-Die Zugangsdaten stehen anschliessend in `.local/connection.json`.
-**Diese Datei enthaelt den geheimen API-Key und darf nicht veroeffentlicht werden.**
+| Local file | Purpose |
+|---|---|
+| `.local/connection.json` | Endpoint URLs and secret API key. Never publish or commit this file. |
+| `.local/openapi.json` | OpenAPI specification with the deployed server URL. |
 
-## An die Teilnehmer weitergeben
+The first deployment can take several minutes. Running the same command again
+updates the tool and preserves its existing API key.
 
-1. Die ausgegebene **OpenAPI-URL** oder die erzeugte `.local/openapi.json`.
-2. Den **API-Key separat ueber einen sicheren Kanal**. Header: `x-functions-key`.
-3. Das gemeinsame [Menue](menu.txt) als Wissensquelle fuer ihren Agenten.
+## 2. Share the connection with your team
 
-Im Foundry-Portal beim eigenen Agenten ein **Custom OpenAPI Tool** hinzufuegen,
-die Spezifikation importieren und eine API-Key-Projektverbindung konfigurieren.
-Zum Erstellen der Verbindung werden passende Projektberechtigungen benoetigt.
-Die genaue Portalbeschriftung kann variieren. Die `/orders`-URL allein reicht
-nicht; importiert wird die OpenAPI-Beschreibung.
+Give each team member:
 
-Kurze Agentenanweisung zum Kopieren, zusaetzlich zum Menue:
+- The **OpenAPI URL** printed by the script, or `.local/openapi.json`.
+- The **API key**, shared separately through a secure channel.
+- The authentication header name: **`x-functions-key`**.
+- The [menu](menu.txt), if they need item codes, sizes and prices.
 
-```text
-Du bist der Menue- und Demo-Bestellassistent von Pizzeria Fornello.
-Nutze das Menue und die Parameterbeschreibung von submit_order.
-Frage fehlende Groessen, Mengen, Extras und Varianten ab.
-Zeige die exakte Bestellung und den Gesamtpreis ohne Rabatt.
-Sage, dass es eine Demo ist, und frage vor dem Toolaufruf nach Bestaetigung.
-Rufe submit_order erst nach Bestaetigung auf, mit confirmed=true.
-Nenne danach die tatsaechliche Demo-Bestellnummer und den API-Gesamtpreis.
-Erfinde bei Fehlern keine Bestaetigung und sende nicht automatisch erneut.
-Fordere keine persoenlichen Daten an und garantiere keine Allergiesicherheit.
-```
+Team members import the specification into an OpenAPI-compatible client and
+configure the API key as a header. Alternatively, call `POST {baseUrl}/orders`
+directly. `GET {baseUrl}/openapi.json` is public; submitting an order requires
+the key. The deployed specification contains the correct base URL.
 
-## Testen
+**No separate deployment or tool programming is needed for other team members.**
 
-Im Agenten: **"Eine grosse Margherita mit extra Pilzen zur Abholung."**
-Erwartet: **12,40 EUR**, Rueckfrage zur Bestaetigung und erst danach ein
-`submit_order`-Aufruf mit einer `DEMO-...`-Nummer.
+## 3. Test the tool
 
-Optionaler direkter API-Test mit Python 3.10+; keine Python-Pakete erforderlich:
+From the deployment directory, submit a large Margherita with extra mushrooms:
 
 ```powershell
-python verify_live_api.py
+$connection = Get-Content .\.local\connection.json -Raw | ConvertFrom-Json
+$headers = @{ "x-functions-key" = $connection.apiKey }
+$body = @{
+    confirmed = $true
+    items = @(@{
+        item_code = "P01"; size = "large"; quantity = 1
+        extra_toppings = @("mushrooms"); variant = ""
+    })
+} | ConvertTo-Json -Depth 5
+Invoke-RestMethod -Method Post -Uri "$($connection.baseUrl)/orders" `
+    -Headers $headers -ContentType "application/json" -Body $body
 ```
 
-## Umfang, Infrastruktur und Kosten
+Expected: `status: accepted_demo`, a `DEMO-...` order ID, `total_eur: "12.40"`
+and an English confirmation explicitly stating that no real order was placed.
 
-- 39 Menue-Artikel, Pizza-Groessen und bis zu fuenf verschiedene Extra-Toppings.
-- Nur Demo-Abholung: keine Lieferung, Rabatte, Sonderboeden, Kaeseersetzungen
-  oder Half-and-half; keine echten Bestellungen, Speicherung oder Bezahlung.
-- `confirmed=true` wird validiert. Eine echte Chat-Bestaetigung kann die
-  zustandslose API nicht pruefen; das steuern die Agentenanweisungen.
-- Neue Function/Flex-Plan, privater Storage mit Managed Identity, VNet und
-  drei Private Endpoints fuer Blob/Queue/Table. API oeffentlich per HTTPS,
-  Bestellungen API-Key-geschuetzt; Storage ohne oeffentlichen Netzwerkzugriff
-  oder Shared Key. Private DNS ist global.
-- Nutzungsabhaengige Function-/Storage-Kosten und **laufende Kosten fuer drei
-  Private Endpoints**, auch ohne Anfragen. Kein Application Insights.
-- Nach dem Hackathon die eigens angelegte Ressourcengruppe im Azure-Portal
-  entfernen, nachdem geprueft wurde, dass keine anderen Anwendungen darin liegen.
+Optional: `python verify_live_api.py` checks authentication, pricing and invalid
+requests against the deployment. Requires Python 3.10+, no extra packages.
 
-Die API ist eine Hackathon-Demo, keine produktive Bestellplattform.
+## Scope and costs
+
+- 39 menu items, pizza sizes and up to five distinct extra toppings per pizza.
+- Demo pickup only: no real restaurant connection, storage, payments, delivery,
+  discounts, special dough, substitutions or half-and-half pizzas.
+- `confirmed=true` is required. The stateless API cannot verify actual human
+  consent; callers must obtain it before submitting. Each successful request
+  generates a new demo ID, so do not automatically retry submissions.
+- Infrastructure: Azure Function/Flex plan, private Storage, managed identity,
+  VNet and three private endpoints for Blob/Queue/Table. The HTTPS API is public;
+  Storage has public network access and Shared Key disabled. Private DNS is global.
+- Function/Storage usage charges and **ongoing charges for three private endpoints,
+  even when idle**. No Application Insights is created.
+- When finished, delete the dedicated resource group in the Azure portal after
+  checking that it contains no resources needed by other applications.
+
+This is a demo tool, not a production ordering system.
