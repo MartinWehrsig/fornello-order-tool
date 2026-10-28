@@ -1,0 +1,216 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Pizzeria Fornello Demo Orders",
+    "version": "1.0.0",
+    "description": "Shared hackathon API. Simulated pickup orders only; no real preparation, storage or payments."
+  },
+  "servers": [
+    {
+      "url": "https://YOUR-FUNCTION-APP.azurewebsites.net/api"
+    }
+  ],
+  "paths": {
+    "/orders": {
+      "post": {
+        "operationId": "submit_order",
+        "summary": "Submit a confirmed demo pickup order",
+        "description": "Call only after explicit user confirmation of exact items, sizes, quantities, extras and price. Use menu codes, not names. P01-P14 support small/large/family and up to five extra toppings. P15 and all other dishes use standard with no extras. At most ten pizzas. No delivery, discounts, replacement cheese, special dough or half-and-half. Variant choices: {\"S04\": [\"BBQ\", \"hot\"], \"S05\": [\"house\", \"balsamic\", \"yoghurt-herb\", \"Caesar\"], \"S07\": [\"house\", \"balsamic\", \"yoghurt-herb\", \"Caesar\"], \"D04\": [\"vanilla\", \"chocolate\", \"pistachio\", \"lemon sorbet\"], \"G01\": [\"Coca-Cola\", \"Coca-Cola Zero\", \"Fanta\", \"Sprite\"], \"G02\": [\"Coca-Cola\", \"Coca-Cola Zero\", \"Fanta\", \"Sprite\"], \"G03\": [\"sparkling\", \"still\"], \"G04\": [\"sparkling\", \"still\"], \"G05\": [\"lemon-mint\", \"blood orange\"], \"G08\": [\"red\", \"white\"]}. All other variants must be empty.",
+        "security": [
+          {
+            "function_key": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "confirmed",
+                  "items"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ],
+                    "description": "True only after the user explicitly confirms this exact demo order."
+                  },
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "item_code",
+                        "size",
+                        "quantity",
+                        "extra_toppings",
+                        "variant"
+                      ],
+                      "properties": {
+                        "item_code": {
+                          "type": "string",
+                          "enum": [
+                            "P01",
+                            "P02",
+                            "P03",
+                            "P04",
+                            "P05",
+                            "P06",
+                            "P07",
+                            "P08",
+                            "P09",
+                            "P10",
+                            "P11",
+                            "P12",
+                            "P13",
+                            "P14",
+                            "P15",
+                            "S01",
+                            "S02",
+                            "S03",
+                            "S04",
+                            "S05",
+                            "S06",
+                            "S07",
+                            "N01",
+                            "N02",
+                            "N03",
+                            "N04",
+                            "N05",
+                            "D01",
+                            "D02",
+                            "D03",
+                            "D04",
+                            "G01",
+                            "G02",
+                            "G03",
+                            "G04",
+                            "G05",
+                            "G06",
+                            "G07",
+                            "G08"
+                          ],
+                          "description": "Exact item code from the Pizzeria Fornello menu."
+                        },
+                        "size": {
+                          "type": "string",
+                          "enum": [
+                            "small",
+                            "large",
+                            "family",
+                            "standard"
+                          ],
+                          "description": "P01-P14: small/large/family. P15 and all other items: standard."
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 20
+                        },
+                        "extra_toppings": {
+                          "type": "array",
+                          "maxItems": 5,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "mushrooms",
+                              "onion",
+                              "peppers",
+                              "olives",
+                              "spinach",
+                              "jalapenos",
+                              "sweetcorn",
+                              "rocket",
+                              "mozzarella",
+                              "gorgonzola",
+                              "parmesan",
+                              "vegan_cheese",
+                              "ham",
+                              "salami",
+                              "chicken",
+                              "tuna",
+                              "anchovies",
+                              "parma_ham",
+                              "buffalo_mozzarella",
+                              "prawns",
+                              "burrata"
+                            ]
+                          },
+                          "description": "Extra pizza toppings for P01-P14 only; [] otherwise. No replacements."
+                        },
+                        "variant": {
+                          "type": "string",
+                          "maxLength": 80,
+                          "description": "For drinks, wings, gelato or salad: selected menu flavour/type/sauce/dressing; otherwise empty string."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Simulated order accepted; never a real restaurant order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "demo": {
+                      "type": "boolean"
+                    },
+                    "order_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total_eur": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or request too large."
+          },
+          "401": {
+            "description": "Missing or invalid x-functions-key."
+          },
+          "422": {
+            "description": "Unsupported menu item, size, topping, quantity or confirmation."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "function_key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-functions-key"
+      }
+    }
+  }
+}
